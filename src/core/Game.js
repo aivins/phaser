@@ -229,6 +229,31 @@ Phaser.Game = function (width, height, renderer, parent, state, transparent, ant
     this.stepCount = 0;
 
     /**
+    * @property {number} stepInverval - Time in ms to jog forward on each call to Game.step().
+    * @default
+    * @readonly
+    */
+    this.stepInterval = 10;
+
+    /**
+    * @property {number} _stepDuration - Time in ms between enableStep() and disableStep()
+    * @private
+    */
+    this._stepDuration = 0;
+
+    /**
+    * @property {number} _lastStep - The time of the last step (or initial step by enableStep)
+    * @private
+    */
+    this._lastStep = 0;
+
+    /**
+    * @property {boolean} _finalStep - Internal value used to recover from the stepping state.
+    * @private
+    */
+    this._finalStep = 0;
+
+    /**
     * @property {Phaser.Signal} onPause - This event is fired when the game pauses.
     */
     this.onPause = null;
@@ -594,11 +619,22 @@ Phaser.Game.prototype = {
     */
     update: function (time) {
 
-        this.time.update(time);
+        if (this.stepping)
+        {
+            // Stepping, so move game timer forward by stepInterval on each step
+            this._stepDuration = time - this._lastStep;
+            this.time.update((time - this._stepDuration) + this.stepInterval);
+        }
+        else
+        {
+            // Normal time update, stepDuration will be zero when not stepping
+            this.time.update(time - this._stepDuration);
+            if (this._finalStep) this._finalStep = false;
+        }
 
         if (!this._paused && !this.pendingStep)
         {
-            if (this.stepping)
+            if (this.stepping || this._finalStep)
             {
                 this.pendingStep = true;
             }
@@ -649,6 +685,9 @@ Phaser.Game.prototype = {
         this.stepping = true;
         this.pendingStep = false;
         this.stepCount = 0;
+        this._lastStep = this.time.now;
+        this._finalStep = false;
+        this._stepDuration = 0;
 
     },
 
@@ -661,6 +700,8 @@ Phaser.Game.prototype = {
 
         this.stepping = false;
         this.pendingStep = false;
+        this._lastStep = this.time.now;
+        this._finalStep = true;
 
     },
 
@@ -674,6 +715,8 @@ Phaser.Game.prototype = {
 
         this.pendingStep = false;
         this.stepCount++;
+        this._lastStep = this.time.now;
+        this._finalStep = false;
 
     },
 

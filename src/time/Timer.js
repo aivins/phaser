@@ -180,16 +180,7 @@ Phaser.Timer.prototype = {
     */
     create: function (delay, loop, repeatCount, callback, callbackContext, args) {
 
-        var tick = delay;
-
-        if (this._now === 0)
-        {
-            tick += this.game.time.now;
-        }
-        else
-        {
-            tick += this._now;
-        }
+        var tick = delay + this.game.time.now;
 
         var event = new Phaser.TimerEvent(this, delay, tick, repeatCount, loop, callback, callbackContext, args);
 
